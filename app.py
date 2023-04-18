@@ -79,13 +79,15 @@ def lecturer_dashboard(df):
     filtered_df = filtered_df.dropna(subset=['GRADE'])
 
     c_plus_and_below = filtered_df[filtered_df['GRADE'].str.contains('C\+|C|D\+|D|F')]
-    num_c_plus_and_below = round(( len(c_plus_and_below) / len(filtered_df) ) * 100 ,2)
-    print(type(c_plus_and_below))
+    num_c_plus_and_below = 0
+    if len(filtered_df) > 0:
+        num_c_plus_and_below = round(( len(c_plus_and_below) / len(filtered_df) ) * 100 ,2)
+    # print(type(c_plus_and_below))
 
     if selected_course:
         # st.subheader(f"Course Name: {selected_course}. Semester: {selected_semester}. % at risk: :orange[{num_c_plus_and_below}]")
         st.markdown(
-            f"<h4>Course Name: {selected_course[0]}. Semester: {selected_semester[0]}. &nbsp; &nbsp; &nbsp; <span style='background-color: orange; color: white;'>{num_c_plus_and_below}% at risk</span></h4>",
+            f"<h4>Course Name: {selected_course}. Semester: {selected_semester}. &nbsp; &nbsp; &nbsp; <span style='background-color: orange; color: white;'>{num_c_plus_and_below}% at risk</span></h4>",
             unsafe_allow_html=True)
 
     # ----------- tab --------------
