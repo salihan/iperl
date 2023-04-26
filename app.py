@@ -226,7 +226,7 @@ set_page_container_style(
 
 if __name__ == '__main__':
     st.sidebar.empty()
-    st.sidebar.image("images/aiperla-side.png")
+    st.sidebar.image("images/aiperla-side.png", width=200)
     st.sidebar.title("Options")
 
     if "logged_in" not in st.session_state or not st.session_state.logged_in:
