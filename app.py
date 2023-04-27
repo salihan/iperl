@@ -1,11 +1,14 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objs as go
 import streamlit_pandas as sp
+import numpy as np
 from common import set_page_container_style
+from plotly.subplots import make_subplots
 from st_aggrid import AgGrid, GridOptionsBuilder
 import json
-import numpy as np
+
 
 @st.cache_data
 def load_data(file):
@@ -53,7 +56,7 @@ def admin_dashboard():
 def lecturer_dashboard():
     file = "Salihan.csv"
     df = load_data(file)
-    columns_to_display = ['MATRIC_NEW', 'Skill', 'TEST1', 'CONTINUOUS', 'Current Total',
+    columns_to_display = ['Skill', 'TEST1', 'CONTINUOUS', 'Current Total',
                           'FINAL', 'GRADE', 'PREDICTED GRADE', 'Cognitive', 'Psychomotor', 'Affective']
     create_data = {"KOD KURSUS": "multiselect",
                    "SEM": "multiselect",
@@ -66,7 +69,7 @@ def lecturer_dashboard():
         'RESOURCES_W20', 'FORUM_W8', 'FORUM_W20', 'GPA', 'CGPA', 'Max', 'Skill',
         'Current Total'])
 
-    print(all_widgets)
+    # print(all_widgets)
     with st.container():
         # get the selected values of the widgets
         selected_values = {}
@@ -95,8 +98,18 @@ def lecturer_dashboard():
 
 
     # ----------- tab --------------
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Student at-risk", "All", "Graph", "PO Analysis", "Engagement"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Student at-risk", "All", "Graphs", "PO Analysis", "Engagement"])
 
+    res_alldf = sp.filter_df(df, all_widgets)
+    res_alllength = len(res_alldf)
+
+    po1 = res_alldf['TEST1'] + res_alldf['FINAL']
+    po2 = res_alldf['CONTINUOUS'] * 0.95
+    po3 = po2.mean() * 0.5
+
+    sort_order = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F', 'M']
+
+    # ---------------- tab1 -------------------
     with tab1:
         # filter the DataFrame using boolean indexing with isin()
         below_cplus_grades = ['C', 'C-', 'D+', 'D', 'D-', 'F']
@@ -105,16 +118,16 @@ def lecturer_dashboard():
         res_df = sp.filter_df(filtered_df, all_widgets)
         res_length = len(res_df)
 
-        po1 = res_df['TEST1'] + res_df['FINAL']
-        po2 = res_df['CONTINUOUS'] * 0.95
-        po3 = po2.mean() * 0.5
+        po1risk = res_df['TEST1'] + res_df['FINAL']
+        po2risk = res_df['CONTINUOUS'] * 0.95
+        po3risk = po2.mean() * 0.5
 
         with st.container():
             col1, col2, col3 = st.columns([1, 1, 2])
             with col1:
-                st.metric(label="% Attainment PO1", value=round(po1.mean(), 2))
-                st.metric(label="% Attainment PO2", value=round(po2.mean(), 2))
-                st.metric(label="% Attainment PO3", value=round(po3, 2))
+                st.metric(label="% Attainment PO1", value=round(po1risk.mean(), 2))
+                st.metric(label="% Attainment PO2", value=round(po2risk.mean(), 2))
+                st.metric(label="% Attainment PO3", value=round(po3risk, 2))
 
             with col2:
                 st.write("_Assessment Info:_")
@@ -131,28 +144,24 @@ def lecturer_dashboard():
                 st.plotly_chart(fig, use_container_width=True)
 
         # apply red color to the Current Total column
+        # res_df_style = res_df.set_index('MATRIC_NEW')[columns_to_display]
+        # print(res_df_style)
         res_df_style = res_df[columns_to_display].style \
             .apply(lambda x: ['color: red' if v < 40 else '' for v in x], subset=['Current Total']) \
             .format({'Current Total': '{:.2f}', 'TEST1': '{:.2f}', 'CONTINUOUS': '{:.2f}', 'FINAL': '{:.2f}',
                      'Cognitive': '{:.2f}', 'Psychomotor': '{:.2f}', 'Affective': '{:.2f}'}) \
-            .hide_index()
+            .hide(axis="index")
 
-        # display the DataFrame with the style
         with st.container():
             if res_length > 0:
+                # res_df_style.index.name = 'Anonymous'
                 st.write(res_df_style)
             else:
                 st.write("No record found.")
             st.caption(f"_Record found: {res_length}_")
 
+    # ---------------- tab2 -------------------
     with tab2:
-        res_alldf = sp.filter_df(df, all_widgets)
-        res_alllength = len(res_alldf)
-
-        po1 = res_alldf['TEST1'] + res_alldf['FINAL']
-        po2 = res_alldf['CONTINUOUS'] * 0.95
-        po3 = po2.mean() * 0.5
-
         with st.container():
 
             col1, col2, col3 = st.columns([2, 2, 4])
@@ -175,21 +184,206 @@ def lecturer_dashboard():
                 st.plotly_chart(fig, use_container_width=True)
 
         with st.container():
-            res_alldf.index.name = "Anonymous"
+            columns_to_display = ['Skill', 'TEST1', 'CONTINUOUS', 'Current Total',
+                                  'FINAL', 'GRADE', 'PREDICTED GRADE', 'Cognitive', 'Psychomotor', 'Affective']
+            # res_alldf.index.name = "Anonymous"
+            
             if res_alllength > 0:
-                st.write(res_alldf[columns_to_display])
+                res_alldf.set_index('MATRIC_NEW')[columns_to_display]
+                # st.write(res_alldf[columns_to_display])
             else:
                 st.write("No record found.")
             st.caption(f"_Record found: {res_alllength}_")
 
+    # ---------------- tab3 -------------------
     with tab3:
-        st.header("An owl")
-        st.image("https://static.streamlit.io/examples/owl.jpg", width=200)
+        with st.container():
 
+            col1, col2, col3 = st.columns([2, 2, 4])
+            with col1:
+                st.metric(label="% Attainment PO1", value=round(po1.mean(), 2))
+                st.metric(label="% Attainment PO2", value=round(po2.mean(), 2))
+                st.metric(label="% Attainment PO3", value=round(po3, 2))
+
+            with col2:
+                st.write("_Assessment Info:_")
+                st.write(f"Test1: :blue[{round(res_alldf['TEST1'].mean(), 2)}]")
+                st.write(f"Continuous Assessment: :blue[{round(res_alldf['CONTINUOUS'].mean(), 2)}]")
+                st.write(f"Final: :blue[{round(res_alldf['FINAL'].mean(), 2)}]")
+
+            with col3:
+
+                res_alldf['GRADE'] = pd.Categorical(res_alldf['GRADE'], categories=sort_order, ordered=True)
+                res_alldf['PREDICTED GRADE'] = pd.Categorical(res_alldf['PREDICTED GRADE'], categories=sort_order,
+                                                              ordered=True)
+
+                sorted_counts = res_alldf['GRADE'].value_counts().sort_index()
+                sorted_predicted = res_alldf['PREDICTED GRADE'].value_counts().sort_index()
+
+                fig = make_subplots(specs=[[{"secondary_y": True}]])
+                fig.add_trace(go.Bar(x=sorted_counts.index, y=sorted_counts.values, name="Actual Grade"))
+                fig.add_trace(go.Scatter(x=sorted_predicted.index, y=sorted_predicted.values, mode="lines+markers",
+                                         name="Predicted Grade"), secondary_y=True)
+
+                fig.update_layout(title="Actual vs Predicted Grade", title_x=0.4, xaxis_title="Grade",
+                                  yaxis_title="Actual Grade Count", yaxis2_title="Predicted Grade Count",
+                                  height=300, margin=dict(l=0, r=10, t=30, b=0))
+                st.plotly_chart(fig, use_container_width=True)
+
+        with st.container():
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                fig = make_subplots(rows=1, cols=3, subplot_titles=("TEST1", "Continuous Assessment", "Final"))
+
+                fig.add_trace(
+                    go.Histogram(x=res_alldf["TEST1"], nbinsx=20, name="TEST1 Marks", marker_color="CORAL"),
+                    row=1, col=1
+                )
+
+                fig.add_trace(
+                    go.Histogram(x=res_alldf["CONTINUOUS"], nbinsx=20, name="Continuous Assessment", marker_color="OLIVEDRAB"),
+                    row=1, col=2
+                )
+
+                fig.add_trace(
+                    go.Histogram(x=res_alldf["FINAL"], nbinsx=20, name="FINAL", marker_color="DARKCYAN"),
+                    row=1, col=3
+                )
+
+                fig.update_layout(height=300, title_text="Marks Distribution", title_x=0.45, legend=dict(x=0.7, y=1.1), showlegend=False)
+                st.plotly_chart(fig, use_container_width=True)
+
+            with col2:
+                # sorted_counts = res_alldf['GRADE'].value_counts().sort_index()
+                # fig = px.pie(sorted_counts, values=sorted_counts.values, names=sorted_counts.index, sort_order=False,
+                #              category_orders={"names": sort_order})
+                # fig.update_layout(title="Grade Distribution", title_x=0.4, height=300,
+                #                   margin=dict(l=0, r=10, t=30, b=0))
+                # st.plotly_chart(fig, use_container_width=True)
+
+                counts = res_alldf['GRADE'].value_counts()
+                # create a new dataframe with sorted index based on the sort order
+                sorted_counts = pd.DataFrame({'GRADE': counts.index, 'COUNT': counts.values}).sort_values\
+                    ('GRADE', key=lambda x: [sort_order.index(i) for i in x])
+                # plot the pie chart
+                fig = px.pie(sorted_counts, values='COUNT', names='GRADE', title='Grade Distribution')
+                fig.update_traces(textposition='inside', textinfo='percent+label')
+                fig.update_layout(title_x=0.25, showlegend=False)
+                st.plotly_chart(fig, use_container_width=True)
+
+    # ---------------- tab4 -------------------
     with tab4:
-        st.header("Tab 4")
-        st.image("https://static.streamlit.io/examples/owl.jpg", width=200)
+        with st.container():
+            col1, col2, col3 = st.columns([2, 2, 4])
+            with col1:
+                st.metric(label="% Attainment PO1", value=round(po1.mean(), 2))
+                st.metric(label="% Attainment PO2", value=round(po2.mean(), 2))
+                st.metric(label="% Attainment PO3", value=round(po3, 2))
 
+            with col2:
+                st.write("_Assessment Info:_")
+                st.write(f"Test1: :blue[{round(res_alldf['TEST1'].mean(), 2)}]")
+                st.write(f"Continuous Assessment: :blue[{round(res_alldf['CONTINUOUS'].mean(), 2)}]")
+                st.write(f"Final: :blue[{round(res_alldf['FINAL'].mean(), 2)}]")
+
+            with col3:
+                res_alldf['GRADE'] = pd.Categorical(res_alldf['GRADE'], categories=sort_order, ordered=True)
+                res_alldf['PREDICTED GRADE'] = pd.Categorical(res_alldf['PREDICTED GRADE'], categories=sort_order,
+                                                              ordered=True)
+
+                sorted_counts = res_alldf['GRADE'].value_counts().sort_index()
+                sorted_predicted = res_alldf['PREDICTED GRADE'].value_counts().sort_index()
+
+                fig = make_subplots(specs=[[{"secondary_y": True}]])
+                fig.add_trace(go.Bar(x=sorted_counts.index, y=sorted_counts.values, name="Actual Grade"))
+                fig.add_trace(go.Scatter(x=sorted_predicted.index, y=sorted_predicted.values, mode="lines+markers",
+                                         name="Predicted Grade"), secondary_y=True)
+
+                fig.update_layout(title="Actual vs Predicted Grade", title_x=0.4, xaxis_title="Grade",
+                                  yaxis_title="Actual Grade Count", yaxis2_title="Predicted Grade Count",
+                                  height=300, margin=dict(l=0, r=10, t=30, b=0))
+                st.plotly_chart(fig, use_container_width=True)
+
+        with st.container():
+            tab1, tab2, tab3 = st.tabs(["Cognitive", "Psychomotor", "Affective"])
+
+            with tab1:
+                col1, col2, col3 = st.columns([3, 1, 1])
+                with col1:
+                    fig = px.histogram(res_alldf, x='Cognitive', nbins=20, title='Cognitive Marks Distribution')
+                    fig.update_layout(xaxis_title='Marks', yaxis_title='Count',
+                                      margin=dict(l=0, r=10, t=30, b=0))
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with col2:
+                    cog_filter = res_alldf['Cognitive'] < 50
+                    cog_filtered_df = res_alldf[cog_filter]
+                    cog_filtered_table = cog_filtered_df.set_index('MATRIC_NEW')[['Cognitive']]
+                    st.write("**Fail Cognitive Attainment**")
+                    st.write(cog_filtered_table, height=200)
+                    st.caption(f"Fail found: {len(cog_filtered_df)}")
+
+                with col3:
+                    # filter the dataframe
+                    cog_filter2 = res_alldf['Cognitive'] >= 50
+                    cog_filtered_df2 = res_alldf[cog_filter2]
+                    cog_filtered_table2 = cog_filtered_df2.set_index('MATRIC_NEW')[['Cognitive']]
+                    st.write("**Pass Cognitive Attainment**")
+                    st.write(cog_filtered_table2, height=200)
+                    st.caption(f"Pass found: {len(cog_filtered_df2)}")
+
+            with tab2:
+                col1, col2, col3 = st.columns([3, 1, 1])
+                with col1:
+                    fig = px.histogram(res_alldf, x='Psychomotor', nbins=20, title='Psychomotor Marks Distribution')
+                    fig.update_layout(xaxis_title='Marks', yaxis_title='Count',
+                                      margin=dict(l=0, r=10, t=30, b=0))
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with col2:
+                    cog_filter = res_alldf['Psychomotor'] < 50
+                    cog_filtered_df = res_alldf[cog_filter]
+                    cog_filtered_table = cog_filtered_df.set_index('MATRIC_NEW')[['Psychomotor']]
+                    st.write("**Fail Psychomotor Attainment**")
+                    st.write(cog_filtered_table, height=200)
+                    st.caption(f"Fail found: {len(cog_filtered_df)}")
+
+                with col3:
+                    # filter the dataframe
+                    cog_filter2 = res_alldf['Psychomotor'] >= 50
+                    cog_filtered_df2 = res_alldf[cog_filter2]
+                    cog_filtered_table2 = cog_filtered_df2.set_index('MATRIC_NEW')[['Psychomotor']]
+                    st.write("**Pass Psychomotor Attainment**")
+                    st.write(cog_filtered_table2, height=200)
+                    st.caption(f"Pass found: {len(cog_filtered_df2)}")
+
+            with tab3:
+                col1, col2, col3 = st.columns([3, 1, 1])
+                with col1:
+                    fig = px.histogram(res_alldf, x='Affective', nbins=20, title='Affective Marks Distribution')
+                    fig.update_layout(xaxis_title='Marks', yaxis_title='Count',
+                                      margin=dict(l=0, r=10, t=30, b=0))
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with col2:
+                    cog_filter = res_alldf['Affective'] < 50
+                    cog_filtered_df = res_alldf[cog_filter]
+                    cog_filtered_table = cog_filtered_df.set_index('MATRIC_NEW')[['Affective']]
+                    st.write("**Fail Affective Attainment**")
+                    st.write(cog_filtered_table, height=200)
+                    st.caption(f"Fail found: {len(cog_filtered_df)}")
+
+                with col3:
+                    # filter the dataframe
+                    cog_filter2 = res_alldf['Affective'] >= 50
+                    cog_filtered_df2 = res_alldf[cog_filter2]
+                    cog_filtered_table2 = cog_filtered_df2.set_index('MATRIC_NEW')[['Affective']]
+                    st.write("**Pass Affective Attainment**")
+                    st.write(cog_filtered_table2, height=200)
+                    st.caption(f"Pass found: {len(cog_filtered_df2)}")
+
+
+    # ---------------- tab5 -------------------
     with tab5:
         st.header("Tab 5")
         st.image("https://static.streamlit.io/examples/owl.jpg", width=200)
