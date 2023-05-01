@@ -69,6 +69,7 @@ def lecturer_dashboard():
         'RESOURCES_W20', 'FORUM_W8', 'FORUM_W20', 'GPA', 'CGPA', 'Max', 'Skill',
         'Current Total'])
 
+    kod_kursus = None
     # print(all_widgets)
     with st.container():
         # get the selected values of the widgets
@@ -79,22 +80,19 @@ def lecturer_dashboard():
             elif widget[1] == 'selectbox':
                 selected_values[widget[0]] = st.session_state[widget[0]]
 
-        # Convert any numpy integer values to Python integer values
-        # selected_values = {k: v.tolist() if isinstance(v, np.integer) else v for k, v in selected_values.items()}
-        # selected_values_str = "   ".join(
-        #     [f"{k.capitalize()}: {', '.join(map(str, v))}" for k, v in selected_values.items()])
-        # st.markdown(f"<h3>Selected Values: {selected_values_str}</h3>", unsafe_allow_html=True)
-
         # Remove any key-value pairs where the value is an empty list
         selected_values = {k: v for k, v in selected_values.items() if v}
         # Convert any numpy integer values to Python integer values
         selected_values = {k: v.tolist() if isinstance(v, np.integer) else v for k, v in selected_values.items()}
-        # selected_values_str = "   ".join([f"{k.capitalize()}: {', '.join(v)}" for k, v in selected_values.items()])
         selected_values_str = ";   ".join([f"{k.capitalize()}: {', '.join(str(vv) for vv in v)}" for k, v in selected_values.items()])
 
         st.markdown(f"<h4>{selected_values_str}</h4>", unsafe_allow_html=True)
 
-        # st.write('Selected Values: ', json.dumps(selected_values, indent=4, default=str))
+        for item in selected_values_str.split(";"):
+            if "Kod kursus" in item:
+                kod_kursus = item.split(":")[1].strip()
+                print("kod kursus: ", kod_kursus)
+                print(type(kod_kursus))
 
 
     # ----------- tab --------------
@@ -320,7 +318,7 @@ def lecturer_dashboard():
                     cog_filtered_df = res_alldf[cog_filter]
                     cog_filtered_table = cog_filtered_df.set_index('MATRIC_NEW')[['Cognitive']]
                     st.write("**Fail Cognitive Attainment**")
-                    st.write(cog_filtered_table, height=200)
+                    st.write(cog_filtered_table)
                     st.caption(f"Fail found: {len(cog_filtered_df)}")
 
                 with col3:
@@ -329,7 +327,7 @@ def lecturer_dashboard():
                     cog_filtered_df2 = res_alldf[cog_filter2]
                     cog_filtered_table2 = cog_filtered_df2.set_index('MATRIC_NEW')[['Cognitive']]
                     st.write("**Pass Cognitive Attainment**")
-                    st.write(cog_filtered_table2, height=200)
+                    st.write(cog_filtered_table2)
                     st.caption(f"Pass found: {len(cog_filtered_df2)}")
 
             with tab2:
@@ -345,7 +343,7 @@ def lecturer_dashboard():
                     cog_filtered_df = res_alldf[cog_filter]
                     cog_filtered_table = cog_filtered_df.set_index('MATRIC_NEW')[['Psychomotor']]
                     st.write("**Fail Psychomotor Attainment**")
-                    st.write(cog_filtered_table, height=200)
+                    st.write(cog_filtered_table)
                     st.caption(f"Fail found: {len(cog_filtered_df)}")
 
                 with col3:
@@ -354,7 +352,7 @@ def lecturer_dashboard():
                     cog_filtered_df2 = res_alldf[cog_filter2]
                     cog_filtered_table2 = cog_filtered_df2.set_index('MATRIC_NEW')[['Psychomotor']]
                     st.write("**Pass Psychomotor Attainment**")
-                    st.write(cog_filtered_table2, height=200)
+                    st.write(cog_filtered_table2)
                     st.caption(f"Pass found: {len(cog_filtered_df2)}")
 
             with tab3:
@@ -370,7 +368,7 @@ def lecturer_dashboard():
                     cog_filtered_df = res_alldf[cog_filter]
                     cog_filtered_table = cog_filtered_df.set_index('MATRIC_NEW')[['Affective']]
                     st.write("**Fail Affective Attainment**")
-                    st.write(cog_filtered_table, height=200)
+                    st.write(cog_filtered_table)
                     st.caption(f"Fail found: {len(cog_filtered_df)}")
 
                 with col3:
@@ -379,14 +377,76 @@ def lecturer_dashboard():
                     cog_filtered_df2 = res_alldf[cog_filter2]
                     cog_filtered_table2 = cog_filtered_df2.set_index('MATRIC_NEW')[['Affective']]
                     st.write("**Pass Affective Attainment**")
-                    st.write(cog_filtered_table2, height=200)
+                    st.write(cog_filtered_table2)
                     st.caption(f"Pass found: {len(cog_filtered_df2)}")
 
 
     # ---------------- tab5 -------------------
     with tab5:
-        st.header("Tab 5")
-        st.image("https://static.streamlit.io/examples/owl.jpg", width=200)
+        with st.container():
+            col1, col2, col3 = st.columns([2, 2, 4])
+            with col1:
+                st.metric(label="% Attainment PO1", value=round(po1.mean(), 2))
+                st.metric(label="% Attainment PO2", value=round(po2.mean(), 2))
+                st.metric(label="% Attainment PO3", value=round(po3, 2))
+
+            with col2:
+                st.write("_Assessment Info:_")
+                st.write(f"Test1: :blue[{round(res_alldf['TEST1'].mean(), 2)}]")
+                st.write(f"Continuous Assessment: :blue[{round(res_alldf['CONTINUOUS'].mean(), 2)}]")
+                st.write(f"Final: :blue[{round(res_alldf['FINAL'].mean(), 2)}]")
+
+            with col3:
+                res_alldf['GRADE'] = pd.Categorical(res_alldf['GRADE'], categories=sort_order, ordered=True)
+                res_alldf['PREDICTED GRADE'] = pd.Categorical(res_alldf['PREDICTED GRADE'], categories=sort_order,
+                                                              ordered=True)
+
+                sorted_counts = res_alldf['GRADE'].value_counts().sort_index()
+                sorted_predicted = res_alldf['PREDICTED GRADE'].value_counts().sort_index()
+
+                fig = make_subplots(specs=[[{"secondary_y": True}]])
+                fig.add_trace(go.Bar(x=sorted_counts.index, y=sorted_counts.values, name="Actual Grade"))
+                fig.add_trace(go.Scatter(x=sorted_predicted.index, y=sorted_predicted.values, mode="lines+markers",
+                                         name="Predicted Grade"), secondary_y=True)
+
+                fig.update_layout(title="Actual vs Predicted Grade", title_x=0.4, xaxis_title="Grade",
+                                  yaxis_title="Actual Grade Count", yaxis2_title="Predicted Grade Count",
+                                  height=300, margin=dict(l=0, r=10, t=30, b=0))
+                st.plotly_chart(fig, use_container_width=True)
+
+        with st.container():
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col1:
+                if kod_kursus:
+                    if kod_kursus:
+                        df_with_course = pd.read_csv("df_with_course.csv")
+                        df_with_course.index = pd.to_datetime(df_with_course.index)
+                        df_with_course['access_date'] = pd.to_datetime(df_with_course['access_date'])
+
+                        # Get the selected KOD KURSUS
+                        kod_kursus = []
+                        for item in selected_values_str.split(";"):
+                            if "Kod kursus" in item:
+                                kod_kursus = [code.strip() for code in item.split(":")[1].split(",")]
+                                break
+
+                        # Group the data by week and count the number of events for selected KOD KURSUS
+                        weekly_access = df_with_course[df_with_course['KOD KURSUS'].isin(kod_kursus)].groupby(
+                            [pd.Grouper(key='access_date', freq='W-MON'), 'KOD KURSUS']).size().reset_index(
+                            name='count')
+
+                        # Plot the weekly access for selected KOD KURSUS using plotly
+                        fig = px.line(weekly_access, x='access_date', y='count', color='KOD KURSUS',
+                                      title="Weekly Engagement",
+                                      color_discrete_sequence=px.colors.qualitative.Alphabet,
+                                      labels={'access_date': 'Week', 'count': 'Access Count'})
+                        fig.update_layout(margin=dict(l=0, r=10, t=30, b=0), height=200)
+                        st.plotly_chart(fig)
+
+            with col2:
+                st.write("Resources over week")
+            with col3:
+                st.write("Posts view on forum")
 
 
 
