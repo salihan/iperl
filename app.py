@@ -18,6 +18,32 @@ def load_data(file):
     df['Current Total'] = df['TEST1'] + df['CONTINUOUS']
     return df
 
+def get_mate(row):
+    if row['Skill'] == 'Affective':
+        return 'Focus Group'
+    elif row['Skill'] == 'Psychomotor':
+        return 'Quiz Whiz'
+    else:
+        return np.random.choice(['Case Study', 'Watcher'])
+
+def get_mateaction(row):
+    if row['Skill'] == 'Affective':
+        return 'Brain Storm'
+    elif row['Skill'] == 'Psychomotor':
+        return 'Increase Participation'
+    else:
+        return np.random.choice(['Topic 1', 'Topic 2', 'Topic 3', 'Topic 4', 'Topic 5', 'Topic 6', 'Topic 7', 'Topic 8'])
+
+def get_matesent(row):
+    if row['Skill'] == 'Affective':
+        return ':e-mail: Motivation Sent'
+    elif row['Skill'] == 'Psychomotor':
+        return ':male-doctor:Invited to Clinic'
+    else:
+        return np.random.choice(['https://youtu.be/lBozk1gTa3c', 'https://youtu.be/SGlip_9haDc', 'https://youtu.be/1sfAX9O5ZJw',
+                                 'https://youtu.be/ldTSFTY6_GY', 'https://youtu.be/Mqozx74b-_8', 'https://youtu.be/g-nH2aQiQfw',
+                                 'https://youtu.be/nLdTCzonJHQ', 'https://youtu.be/1mIZvYp4hdo'])
+
 def login():
     st.image("images/logo.png", width=200)
     st.title("Login")
@@ -96,7 +122,7 @@ def lecturer_dashboard():
 
 
     # ----------- tab --------------
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Student at-risk", "All", "Graphs", "PO Analysis", "Engagement"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Student at-risk", "All", "Graphs", "PO Analysis", "Engagement","Insights"])
 
     res_alldf = sp.filter_df(df, all_widgets)
     res_alllength = len(res_alldf)
@@ -415,40 +441,39 @@ def lecturer_dashboard():
                 st.plotly_chart(fig, use_container_width=True)
 
         with st.container():
-            col1, col2, col3 = st.columns([1, 1, 1])
-            with col1:
+            if kod_kursus:
                 if kod_kursus:
-                    if kod_kursus:
-                        df_with_course = pd.read_csv("df_with_course.csv")
-                        df_with_course.index = pd.to_datetime(df_with_course.index)
-                        df_with_course['access_date'] = pd.to_datetime(df_with_course['access_date'])
+                    df_with_course = pd.read_csv("df_with_course.csv")
+                    df_with_course.index = pd.to_datetime(df_with_course.index)
+                    df_with_course['access_date'] = pd.to_datetime(df_with_course['access_date'])
 
-                        # Get the selected KOD KURSUS
-                        kod_kursus = []
-                        for item in selected_values_str.split(";"):
-                            if "Kod kursus" in item:
-                                kod_kursus = [code.strip() for code in item.split(":")[1].split(",")]
-                                break
+                    # Get the selected KOD KURSUS
+                    kod_kursus = []
+                    for item in selected_values_str.split(";"):
+                        if "Kod kursus" in item:
+                            kod_kursus = [code.strip() for code in item.split(":")[1].split(",")]
+                            break
 
-                        # Group the data by week and count the number of events for selected KOD KURSUS
-                        weekly_access = df_with_course[df_with_course['KOD KURSUS'].isin(kod_kursus)].groupby(
-                            [pd.Grouper(key='access_date', freq='W-MON'), 'KOD KURSUS']).size().reset_index(
-                            name='count')
+                    # Group the data by week and count the number of events for selected KOD KURSUS
+                    weekly_access = df_with_course[df_with_course['KOD KURSUS'].isin(kod_kursus)].groupby(
+                        [pd.Grouper(key='access_date', freq='W-MON'), 'KOD KURSUS']).size().reset_index(
+                        name='count')
 
-                        # Plot the weekly access for selected KOD KURSUS using plotly
-                        fig = px.line(weekly_access, x='access_date', y='count', color='KOD KURSUS',
-                                      title="Weekly Engagement",
-                                      color_discrete_sequence=px.colors.qualitative.Alphabet,
-                                      labels={'access_date': 'Week', 'count': 'Access Count'})
-                        fig.update_layout(margin=dict(l=0, r=10, t=30, b=0), height=200)
-                        st.plotly_chart(fig)
+                    # Plot the weekly access for selected KOD KURSUS using plotly
+                    fig = px.line(weekly_access, x='access_date', y='count', color='KOD KURSUS',
+                                  title="Weekly Engagement",
+                                  color_discrete_sequence=px.colors.qualitative.Alphabet,
+                                  labels={'access_date': 'Week', 'count': 'Access Count'})
+                    fig.update_layout(margin=dict(l=0, r=10, t=30, b=0), height=200)
+                    st.plotly_chart(fig)
 
-            with col2:
-                st.write("Resources over week")
-            with col3:
-                st.write("Posts view on forum")
-
-
+        # ---------------- tab6 -------------------
+        with tab6:
+            res_df['Learning Preferences'] = res_df.apply(get_mate, axis=1)
+            res_df['Improvement Needed'] = res_df.apply(get_mateaction, axis=1)
+            res_df['Sent'] = res_df.apply(get_matesent, axis=1)
+            st.write(res_df[['MATRIC_NEW', 'Learning Preferences', 'Improvement Needed', 'Sent']])
+            # st.write(':sunglasses:')
 
 # --------------- run --------------
 st.set_page_config(
