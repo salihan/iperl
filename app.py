@@ -47,33 +47,72 @@ def get_matesent(row):
 def login():
     st.image("images/logo.png", width=200)
     st.title("Login")
+    file = "Salihan.csv"
+    df = load_data(file)
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
+
     if st.button("Login"):
         if username == "admin" and password == "admin123":
             st.success("Logged in as admin")
             st.session_state.logged_in = True
             st.session_state.role = "admin"
-        elif username == "student" and password == "pelajar123":
-            st.success("Logged in as student")
-            st.session_state.logged_in = True
-            st.session_state.role = "student"
+        elif username in df["MATRIC_NEW"].tolist():
+            row = df.loc[df["MATRIC_NEW"] == username]
+            if password == "test123":
+                st.success("Logged in as student")
+                st.session_state.logged_in = True
+                st.session_state.role = "student"
+                st.session_state.username = username
+            else:
+                st.error("Wrong password")
         elif username == "lecturer" and password == "cikgu123":
             st.success("Logged in as lecturer")
             st.session_state.logged_in = True
             st.session_state.role = "lecturer"
         else:
             st.error("Incorrect username or password")
+            st.session_state.logged_in = False
+            st.session_state.role = None
 
+
+# Define student dashboard
 def student_dashboard():
-    st.image("logo.png", width=200)
-    st.title("Student Dashboard")
-    st.write("Welcome, student!")
-    st.write("This is your dashboard.")
-    st.write("You do not have access to any admin features.")
+    columns_to_display = ['KOD KURSUS', 'Skill', 'TEST1', 'CONTINUOUS', 'Current Total',
+                          'FINAL', 'GRADE', 'PREDICTED GRADE', 'Cognitive', 'Psychomotor', 'Affective']
+    df = load_data("Salihan.csv")
+    username = st.session_state.username
+    df_student = df[df["MATRIC_NEW"] == username]
+    record_len = len(df_student)
+    sem = df_student["SEM"].unique()
+    selected_sem = st.sidebar.multiselect(
+        "Semester:",
+        sem,
+        default=sem.tolist()
+    )
+
+    if len(selected_sem) > 0:
+        courses = df_student[df_student["SEM"].isin(selected_sem)]["KOD KURSUS"]
+        courses_len = len(courses)
+        selected_courses = st.sidebar.multiselect(
+            "Courses:",
+            courses,
+            default=courses.tolist()
+        )
+
+        filtered_df = df_student[df_student["KOD KURSUS"].isin(selected_courses)]
+        st.write(f"Faculty: {filtered_df['FAKULTI'].iloc[0]}")
+        st.write(f"Total Courses: {record_len}")
+        st.write(f"Number of courses on selected sem: {courses_len}")
+        st.dataframe(filtered_df[columns_to_display])
+    else:
+        st.warning("Please select at least one semester.")
+
+
+
 
 def admin_dashboard():
-    st.image("logo.png", width=200)
+    st.image("images/logo.png", width=200)
     st.title("Admin Dashboard")
     st.write("Welcome, admin!")
     st.write("This is your dashboard.")
