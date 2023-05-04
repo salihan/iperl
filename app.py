@@ -141,7 +141,7 @@ def student_dashboard():
                     polar=dict(
                         radialaxis=dict(
                             visible=True,
-                            range=[0, 5]  # Set the range of the radial axis
+                            range=[0, 40]  # Set the range of the radial axis
                         )
                     ),
                     showlegend=False, height=200, margin=dict(l=0, r=10, t=30, b=10)
