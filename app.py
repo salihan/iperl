@@ -6,6 +6,8 @@ import streamlit_pandas as sp
 import numpy as np
 from common import set_page_container_style
 from plotly.subplots import make_subplots
+from streamlit_card import card
+from PIL import Image
 from st_aggrid import AgGrid, GridOptionsBuilder
 import json
 
@@ -78,6 +80,7 @@ def login():
 
 # Define student dashboard
 def student_dashboard():
+    st.sidebar.title("Options")
     columns_to_display = ['KOD KURSUS', 'Skill', 'TEST1', 'CONTINUOUS', 'Current Total',
                           'FINAL', 'GRADE', 'PREDICTED GRADE', 'Cognitive', 'Psychomotor', 'Affective']
     df = load_data("Salihan.csv")
@@ -99,12 +102,60 @@ def student_dashboard():
             courses,
             default=courses.tolist()
         )
-
         filtered_df = df_student[df_student["KOD KURSUS"].isin(selected_courses)]
-        st.write(f"Faculty: {filtered_df['FAKULTI'].iloc[0]}")
-        st.write(f"Total Courses: {record_len}")
-        st.write(f"Number of courses on selected sem: {courses_len}")
-        st.dataframe(filtered_df[columns_to_display])
+        with st.container():
+
+            col1, col2, col3 = st.columns([1, 3, 3])
+            with col1:
+                if df_student['GENDER'].iloc[0] == 'MALE':
+                    image = Image.open('images/male1.png')
+                else:
+                    image = Image.open('images/hijab2.png')
+                st.image(image, use_column_width=True)
+
+            with col2:
+                st.subheader(st.session_state.username)
+                st.write(f"Faculty: **_{filtered_df['FAKULTI'].iloc[0]}_**".title())
+                st.write(f"""Total Courses: **:blue[{record_len}]**
+                    with **:blue[PNGK: {round(df_student['Current Total'].mean(),2)}]**""")
+                st.write(f"""Number of courses on selected sem: **:green[{courses_len}]** 
+                    with **:green[PNG: {round(filtered_df['Current Total'].mean(),2)}]**""")
+                # st.markdown(
+                #     f'<p style="background-color:#0066cc;color:#33ff33;font-size:14px;border-radius:2%;">salihan.com</p>',
+                #     unsafe_allow_html=True)
+
+            with col3:
+                # Extract the desired columns from the filtered dataframe
+                columns = ["Cognitive", "Psychomotor", "Affective"]
+                values = filtered_df[columns].mean()
+
+                # Create the figure using Scatterpolar
+                fig = go.Figure(data=go.Scatterpolar(
+                    r=values,
+                    theta=columns,
+                    fill='toself'
+                ))
+
+                # Update the layout
+                fig.update_layout(
+                    polar=dict(
+                        radialaxis=dict(
+                            visible=True,
+                            range=[0, 5]  # Set the range of the radial axis
+                        )
+                    ),
+                    showlegend=False, height=200, margin=dict(l=0, r=10, t=30, b=10)
+                )
+
+                # Show the figure
+                st.plotly_chart(fig, use_container_width=True)
+
+            tab1, tab2 = st.tabs(["Sem Data :male-student:", "Messages :e-mail:"])
+            with tab1:
+                st.dataframe(filtered_df[columns_to_display])
+            with tab2:
+                st.write("tab2")
+
     else:
         st.warning("Please select at least one semester.")
 
@@ -112,6 +163,7 @@ def student_dashboard():
 
 
 def admin_dashboard():
+    st.sidebar.title("Options")
     st.image("images/logo.png", width=200)
     st.title("Admin Dashboard")
     st.write("Welcome, admin!")
@@ -119,6 +171,7 @@ def admin_dashboard():
     st.write("You have access to all features.")
 
 def lecturer_dashboard():
+    st.sidebar.title("Options")
     file = "Salihan.csv"
     df = load_data(file)
     columns_to_display = ['Skill', 'TEST1', 'CONTINUOUS', 'Current Total',
@@ -545,7 +598,6 @@ set_page_container_style(
 if __name__ == '__main__':
     st.sidebar.empty()
     st.sidebar.image("images/aiperla-side.png", width=200)
-    st.sidebar.title("Options")
 
     if "logged_in" not in st.session_state or not st.session_state.logged_in:
         login()
