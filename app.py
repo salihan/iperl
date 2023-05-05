@@ -6,11 +6,7 @@ import streamlit_pandas as sp
 import numpy as np
 from common import set_page_container_style
 from plotly.subplots import make_subplots
-from streamlit_card import card
 from PIL import Image
-from st_aggrid import AgGrid, GridOptionsBuilder
-import json
-
 
 @st.cache_data
 def load_data(file):
@@ -141,7 +137,9 @@ def student_dashboard():
                     polar=dict(
                         radialaxis=dict(
                             visible=True,
-                            range=[0, 40]  # Set the range of the radial axis
+                            range=[0, 40], # Set the range of the radial axis
+                            showticklabels=False,  # Hide the range numbers
+                            # showgrid=False  # Hide the grid of the radial axis
                         )
                     ),
                     showlegend=False, height=200, margin=dict(l=0, r=10, t=30, b=10)
@@ -150,11 +148,81 @@ def student_dashboard():
                 # Show the figure
                 st.plotly_chart(fig, use_container_width=True)
 
-            tab1, tab2 = st.tabs(["Sem Data :male-student:", "Messages :e-mail:"])
+            tab1, tab2, tab3 = st.tabs(["All Data :grinning:", "Course at Risk :hot_face:",  "Advice :male_mage:"])
             with tab1:
                 st.dataframe(filtered_df[columns_to_display])
             with tab2:
-                st.write("tab2")
+                below_cplus_grades = ['C', 'C-', 'D+', 'D', 'D-', 'F']
+                below_cplus_grades_df = filtered_df[
+                    (filtered_df['Current Total'] > 0) & (filtered_df['GRADE'].isin(below_cplus_grades))]
+                # st.dataframe(below_cplus_grades_df[columns_to_display])
+                risk_df = below_cplus_grades_df[columns_to_display]
+                # apply a conditional formatting to the dataframe
+                styled_below_cplus_grades_df = risk_df.style.applymap(lambda x: 'color: red',
+                                                                                    subset=pd.IndexSlice[:,
+                                                                                           columns_to_display])
+
+                # display the styled dataframe
+                st.write(styled_below_cplus_grades_df)
+
+            with tab3:
+                # Create a dictionary to map the domain column names to their labels
+                domain_labels = {"Cognitive": "Cognitive domain", "Psychomotor": "Psychomotor domain", "Affective": "Affective domain"}
+                # Define color scheme for weakest domain label
+                color_scheme = {"Cognitive": "#FF8C00", "Psychomotor": "#FFD700", "Affective": "#00BFFF"}
+
+                # Calculate the mean for each domain
+                cognitive_mean = np.mean(df_student["Cognitive"])
+                psychomotor_mean = np.mean(df_student["Psychomotor"])
+                affective_mean = np.mean(df_student["Affective"])
+
+                # Find the weakest domain
+                min_mean = min([cognitive_mean, psychomotor_mean, affective_mean])
+                if min_mean == cognitive_mean:
+                    weakest_col = "Cognitive"
+                elif min_mean == psychomotor_mean:
+                    weakest_col = "Psychomotor"
+                else:
+                    weakest_col = "Affective"
+                weakest_label = domain_labels[weakest_col]
+                weakest_color = color_scheme[weakest_col]
+
+                # Display the weakest domain and its label
+                st.write(f"Your overall weakest domain is: **:red[{weakest_label}]** with the mean score of: **:red[({min_mean:.2f})]**")
+
+                if weakest_col == "Cognitive":
+                    st.write(
+                        "Suggestion 1: Practice summarizing and synthesizing information from your course materials")
+                    st.write("Suggestion 2: Try to explain difficult concepts to others or teach them to yourself")
+                elif weakest_col == "Psychomotor":
+                    st.write(
+                        "Suggestion 1: Practice the skills required for the course, such as programming, writing, or laboratory techniques")
+                    st.write("Suggestion 2: Seek feedback from your instructor or peers on your performance")
+                else:
+                    st.write(
+                        "Suggestion 1: Practice self-reflection: take time to reflect on your experiences and emotions related to the course")
+                    st.write(
+                        "Suggestion 2: Seek support from peers, family, or counseling services to manage stress and emotions")
+
+
+
+                # Display the weakest domain and its label using Bootstrap
+                # st.markdown(
+                #     f"""
+                #     <div class="row">
+                #     <div class="col-md-6">
+                #     <h2 class="text-center">Your weakest domain:</h2>
+                #     <div style="background-color: {weakest_color}; color: white; padding: 20px; text-align: center;">
+                #     <h3>{weakest_label}</h3>
+                #     <p>Score: {min_mean:.2f}</p>
+                #     </div>
+                #     </div>
+                #     </div>
+                #     """,
+                #     unsafe_allow_html=True
+                # )
+
+
 
     else:
         st.warning("Please select at least one semester.")
@@ -573,6 +641,13 @@ st.set_page_config(
     layout='wide',
     page_icon=':rocket:'
 )
+hide_menu_style = """
+        <style>
+        #MainMenu {visibility: hidden; }
+        footer {visibility: hidden;}
+        </style>
+        """
+st.markdown(hide_menu_style, unsafe_allow_html=True)
 st.markdown("""
         <style>
                .css-1544g2n {
