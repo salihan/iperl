@@ -185,24 +185,36 @@ def student_dashboard():
                 else:
                     weakest_col = "Affective"
                 weakest_label = domain_labels[weakest_col]
-                weakest_color = color_scheme[weakest_col]
+                # Find the strongest domain
+                max_mean = max([cognitive_mean, psychomotor_mean, affective_mean])
+                if max_mean == cognitive_mean:
+                    strongest_col = "Cognitive"
+                elif max_mean == psychomotor_mean:
+                    strongest_col = "Psychomotor"
+                else:
+                    strongest_col = "Affective"
+                strongest_label = domain_labels[strongest_col]
 
                 # Display the weakest domain and its label
-                st.write(f"Your overall weakest domain is: **:red[{weakest_label}]** with the mean score of: **:red[({min_mean:.2f})]**")
+                st.success(f"Overall, you are good in  **:blue[{strongest_label}]** with the mean score of: **:blue[({max_mean:.2f})]**")
+                st.warning(f"But, you are lacking in **:red[{weakest_label}]** with the mean score of: **:red[({min_mean:.2f})]**")
 
+                st.caption("Here are a few suggestions for you:")
                 if weakest_col == "Cognitive":
-                    st.write(
-                        "Suggestion 1: Practice summarizing and synthesizing information from your course materials")
-                    st.write("Suggestion 2: Try to explain difficult concepts to others or teach them to yourself")
+                    st.markdown("""
+                        - Practice summarizing and synthesizing information from your course materials
+                        - Try to explain difficult concepts to others or teach them to yourselfs
+                    """)
                 elif weakest_col == "Psychomotor":
-                    st.write(
-                        "Suggestion 1: Practice the skills required for the course, such as programming, writing, or laboratory techniques")
-                    st.write("Suggestion 2: Seek feedback from your instructor or peers on your performance")
+                    st.markdown("""
+                        - Practice the skills required for the course, such as programming, writing, or laboratory techniques
+                        - Seek feedback from your instructor or peers on your performance
+                    """)
                 else:
-                    st.write(
-                        "Suggestion 1: Practice self-reflection: take time to reflect on your experiences and emotions related to the course")
-                    st.write(
-                        "Suggestion 2: Seek support from peers, family, or counseling services to manage stress and emotions")
+                    st.markdown("""
+                        - Practice self-reflection: take time to reflect on your experiences and emotions related to the course
+                        - Seek support from peers, family, or counseling services to manage stress and emotions
+                    """)
 
 
 
