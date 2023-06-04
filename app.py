@@ -104,9 +104,9 @@ def student_dashboard():
             col1, col2, col3 = st.columns([1, 3, 3])
             with col1:
                 if df_student['GENDER'].iloc[0] == 'MALE':
-                    image = Image.open('images/male1.png')
+                    image = Image.open('images/boy2.jpg')
                 else:
-                    image = Image.open('images/hijab2.png')
+                    image = Image.open('images/girl2.jpg')
                 st.image(image, use_column_width=True)
 
             with col2:
