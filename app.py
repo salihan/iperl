@@ -43,7 +43,7 @@ def get_matesent(row):
                                  'https://youtu.be/nLdTCzonJHQ', 'https://youtu.be/1mIZvYp4hdo'])
 
 def login():
-    st.image("images/logo.png", width=200)
+    st.image("images/funrun_nobg.png")
     st.title("Login")
     file = "Salihan.csv"
     df = load_data(file)
@@ -244,7 +244,7 @@ def student_dashboard():
 
 def admin_dashboard():
     st.sidebar.title("Options")
-    st.image("images/logo.png", width=200)
+    st.image("images/funrun_nobg.png", width=200)
     st.title("Admin Dashboard")
     st.write("Welcome, admin!")
     st.write("This is your dashboard.")
@@ -649,7 +649,7 @@ def lecturer_dashboard():
 
 # --------------- run --------------
 st.set_page_config(
-    page_title='AIPerLA',
+    page_title='AcaPerforma',
     layout='wide',
     page_icon=':rocket:'
 )
@@ -684,7 +684,7 @@ set_page_container_style(
 
 if __name__ == '__main__':
     st.sidebar.empty()
-    st.sidebar.image("images/aiperla-side.png", width=200)
+    st.sidebar.image("images/funrun_sidebar.png", width=200)
 
     if "logged_in" not in st.session_state or not st.session_state.logged_in:
         login()
