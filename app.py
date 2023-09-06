@@ -43,7 +43,7 @@ def get_matesent(row):
                                  'https://youtu.be/nLdTCzonJHQ', 'https://youtu.be/1mIZvYp4hdo'])
 
 def login():
-    st.image("images/funrun_nobg.png")
+    st.image("images/funrun_nobg.png", width=300)
     st.title("Login")
     file = "Salihan.csv"
     df = load_data(file)
@@ -244,13 +244,15 @@ def student_dashboard():
 
 def admin_dashboard():
     st.sidebar.title("Options")
-    st.image("images/funrun_nobg.png", width=200)
+    st.image("images/funrun_nobg.png", width=310)
     st.title("Admin Dashboard")
     st.write("Welcome, admin!")
     st.write("This is your dashboard.")
     st.write("You have access to all features.")
 
 def lecturer_dashboard():
+    with open('styles.css') as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
     st.sidebar.title("Options")
     file = "Salihan.csv"
     df = load_data(file)
@@ -662,18 +664,29 @@ hide_menu_style = """
 st.markdown(hide_menu_style, unsafe_allow_html=True)
 st.markdown("""
         <style>
-               .css-1544g2n {
-                  margin-top: -75px;
-                }      
-                .css-6wvkk3 {
-                  margin-top: -75px;
-                }          
-               .block-container {
-                    padding-top: 2rem;
-                    padding-bottom: 0rem;
-                    padding-left: 2rem;
-                    padding-right: 2rem;
-                }
+            @import url('https://fonts.googleapis.com/css2?family=Ubuntu&family=ADLaM+Display');
+            html, body, [class*="css"]  {
+               font-family: 'ADLaM Display', serif;
+            }
+            div:nth-child(1) {
+               font-family: 'Ubuntu', serif;
+            }
+            div:nth-child(2) {
+               font-family: 'ADLaM Display’, serif;
+            }
+            
+           .css-1544g2n {
+              margin-top: -75px;
+            }      
+            .css-6wvkk3 {
+              margin-top: -75px;
+            }          
+           .block-container {
+                padding-top: 2rem;
+                padding-bottom: 0rem;
+                padding-left: 2rem;
+                padding-right: 2rem;
+            }
         </style>
         """, unsafe_allow_html=True)
 
@@ -684,7 +697,7 @@ set_page_container_style(
 
 if __name__ == '__main__':
     st.sidebar.empty()
-    st.sidebar.image("images/funrun_sidebar.png", width=200)
+    st.sidebar.image("images/funrun_nobg.png", width=200)
 
     if "logged_in" not in st.session_state or not st.session_state.logged_in:
         login()
