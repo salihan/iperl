@@ -349,13 +349,13 @@ def admin_dashboard():
         with col_switch_search[1]:
             # Show Actual Grade Toggle
             # show_grade = st.checkbox("Show Actual grade", value=True)
-            show_grade = st.toggle(label="Show Actual Grade",
-                                   value=False,  # Set the default value here
-                                   on_change=None,
-                                   args=None,
-                                   kwargs=None,
-                                   disabled=False,
-                                   label_visibility="visible")
+            show_grade = st.checkbox(label="Show Actual Grade",
+                                     value=False,  # Set the default value here
+                                     help=None,
+                                     on_change=None,
+                                     args=None,
+                                     kwargs=None,
+                                     key=None)
         with col_switch_search[0]:
             # Search Bar
             course_query = st.text_input("🔎 Search course", placeholder="type in course's code and enter")
