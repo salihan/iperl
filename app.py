@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit_toggle as tog
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
@@ -43,7 +44,7 @@ def get_matesent(row):
                                  'https://youtu.be/nLdTCzonJHQ', 'https://youtu.be/1mIZvYp4hdo'])
 
 def login():
-    st.image("images/funrun_nobg.png", width=300)
+    st.image("images/aiperla_logo.png", width=300)
     st.title("Login")
     file = "Salihan.csv"
     df = load_data(file)
@@ -73,6 +74,35 @@ def login():
             st.session_state.logged_in = False
             st.session_state.role = None
 
+def calculate_png_pngk(df, filtered_df):
+    # Define the grade point conversion scale
+    grade_points = {
+        'A': 4.00,
+        'A-': 3.67,
+        'B+': 3.33,
+        'B': 3.00,
+        'B-': 2.67
+        # Add more grades as needed
+    }
+
+    # Assuming all courses have the same credit hours
+    credit_hours = 3  # Change this value if credit hours differ
+    total_filter_credit_hours = credit_hours * len(filtered_df)
+    total_credit_hours = credit_hours * len(df)
+
+    # Calculate Grade Points for each course in the selected semester
+    filtered_df['GRADE_POINTS'] = filtered_df['GRADE'].map(grade_points)
+    df['GRADE_POINTS'] = df['GRADE'].map(grade_points)
+
+    # Calculate Weighted Grade Points for each course in the selected semester
+    filtered_df['WEIGHTED_GRADE_POINTS'] = filtered_df['GRADE_POINTS'] * credit_hours
+    df['WEIGHTED_GRADE_POINTS'] = df['GRADE_POINTS'] * credit_hours
+
+    # Calculate PNG (Purata Nilai Gred or Grade Point Average) for the selected semester
+    png_sem = filtered_df['WEIGHTED_GRADE_POINTS'].sum() / total_filter_credit_hours
+    pngk = df['WEIGHTED_GRADE_POINTS'].sum() / total_credit_hours
+
+    return round(png_sem, 2), round(pngk,2)
 
 # Define student dashboard
 def student_dashboard():
@@ -112,10 +142,11 @@ def student_dashboard():
             with col2:
                 st.subheader(st.session_state.username)
                 st.write(f"Faculty: **_{filtered_df['FAKULTI'].iloc[0]}_**".title())
+                png_sem, pngk = calculate_png_pngk(df_student, filtered_df)
                 st.write(f"""Total Courses: **:blue[{record_len}]**
-                    with **:blue[PNGK: {round(df_student['Current Total'].mean(),2)}]**""")
+                    with **:blue[PNGK:{pngk}]**""")
                 st.write(f"""Number of courses on selected sem: **:green[{courses_len}]** 
-                    with **:green[PNG: {round(filtered_df['Current Total'].mean(),2)}]**""")
+                    with **:green[PNG based on selected courses: {png_sem}]**""")
                 # st.markdown(
                 #     f'<p style="background-color:#0066cc;color:#33ff33;font-size:14px;border-radius:2%;">salihan.com</p>',
                 #     unsafe_allow_html=True)
@@ -129,7 +160,18 @@ def student_dashboard():
                 fig = go.Figure(data=go.Scatterpolar(
                     r=values,
                     theta=columns,
-                    fill='toself'
+                    fill='toself',
+                    # Add these lines to customize the lines
+                    line=dict(
+                        color='magenta',  # Set the line color
+                        width=3,  # Set the line width
+                        dash='dash'  # Set the line style
+                    ),
+                    marker=dict(
+                        color='royalblue',  # Set the marker color
+                        symbol='square',  # Set the marker shape
+                        size=10  # Set the marker size
+                    )
                 ))
 
                 # Update the layout
@@ -216,43 +258,138 @@ def student_dashboard():
                         - Seek support from peers, family, or counseling services to manage stress and emotions
                     """)
 
-
-
-                # Display the weakest domain and its label using Bootstrap
-                # st.markdown(
-                #     f"""
-                #     <div class="row">
-                #     <div class="col-md-6">
-                #     <h2 class="text-center">Your weakest domain:</h2>
-                #     <div style="background-color: {weakest_color}; color: white; padding: 20px; text-align: center;">
-                #     <h3>{weakest_label}</h3>
-                #     <p>Score: {min_mean:.2f}</p>
-                #     </div>
-                #     </div>
-                #     </div>
-                #     """,
-                #     unsafe_allow_html=True
-                # )
-
-
-
     else:
         st.warning("Please select at least one semester.")
 
 
+def predictincourse(data, show_grade=True, course_query=None):
+    # Calculate total students each course
+    total_students = data.groupby('KOD KURSUS')['MATRIC_NEW'].count()
+
+    # Calculate the actual of students who got 'A' and 'B' for each course
+    a_grades = data[data['GRADE'].str.startswith('A')].groupby('KOD KURSUS')['MATRIC_NEW'].count()
+    actual_a_grades = (a_grades / total_students)
+    b_grades = data[data['GRADE'].str.startswith('B')].groupby('KOD KURSUS')['MATRIC_NEW'].count()
+    actual_b_grades = (b_grades / total_students)
+
+    # Calculate the predicted of students who got 'A' and 'B' for each course
+    a_grades = data[data['PREDICTED GRADE'].str.startswith('A')].groupby('KOD KURSUS')['MATRIC_NEW'].count()
+    predicted_a_grades = (a_grades / total_students)
+    b_grades = data[data['PREDICTED GRADE'].str.startswith('B')].groupby('KOD KURSUS')['MATRIC_NEW'].count()
+    predicted_b_grades = (b_grades / total_students)
+
+    # Create a DataFrame to display the results
+    result_df = pd.DataFrame({
+        'Actual_A_Grades': actual_a_grades,
+        'Actual_B_Grades': actual_b_grades,
+        'Predicted_A_Grades': predicted_a_grades,
+        'Predicted_B_Grades': predicted_b_grades
+    })
+
+    # Filter DataFrame based on the course_query if it is provided
+    if course_query:
+        result_df = result_df[result_df.index.str.contains(course_query, case=False)]
+
+    # Conditionally select columns based on show_grade
+    if show_grade:
+        return result_df
+    else:
+        # Exclude 'Actual_A_Grades' and 'Actual_B_Grades' columns
+        return result_df.loc[:, ~result_df.columns.isin(['Actual_A_Grades', 'Actual_B_Grades'])]
+
+
+def display_students_with_other_grades(data, show_grade=True, course_query=None):
+    # Filter DataFrame based on the course_query if it is provided
+    if course_query:
+        data = data[data['KOD KURSUS'].str.contains(course_query, case=False)]
+
+    # Filter students with grades other than 'A' and 'B'
+    other_than_a_b_grades = data[~data['GRADE'].str.startswith(('A', 'B'))]
+
+    if show_grade:
+        return other_than_a_b_grades[['MATRIC_NEW', 'GRADE', 'PREDICTED GRADE']]
+    else:
+        return other_than_a_b_grades[['MATRIC_NEW', 'PREDICTED GRADE']]
+
+
+def display_student_by_id(data, show_grade, stud_id_query=''):
+
+  query = stud_id_query.lower().strip() if stud_id_query else ''
+
+  matches = data[data['MATRIC_NEW'].str.lower() == query]
+
+  if matches.empty:
+    matches = pd.DataFrame(columns=['KOD KURSUS', 'GRADE', 'PREDICTED GRADE'])
+    st.info("No student found with that ID")
+
+  if show_grade:
+    return matches[['KOD KURSUS', 'GRADE', 'PREDICTED GRADE']]
+  else:
+    return matches[['KOD KURSUS', 'PREDICTED GRADE']]
 
 
 def admin_dashboard():
+    file = "Salihan.csv"
+    df = load_data(file)
     st.sidebar.title("Options")
-    st.image("images/funrun_nobg.png", width=310)
-    st.title("Admin Dashboard")
-    st.write("Welcome, admin!")
-    st.write("This is your dashboard.")
-    st.write("You have access to all features.")
+    options = st.sidebar.radio("Select a page:",
+                               ["Prediction in course",
+                                "Prediction for student",
+                                "Explore models",
+                                "Re-develop model"])
+
+    if options == "Prediction in course":
+        # make columns to place the search and switch side by side
+        col_switch_search = st.columns(3)
+        with col_switch_search[1]:
+            # Show Actual Grade Toggle
+            # show_grade = st.checkbox("Show Actual grade", value=True)
+            show_grade = tog.st_toggle_switch(label="Show Actual Grade",
+                                              key="show_grade",
+                                              default_value=False,
+                                              label_after=False,
+                                              inactive_color='#D3D3D3',
+                                              active_color="#11567f",
+                                              track_color="#29B5E8")
+        with col_switch_search[0]:
+            # Search Bar
+            course_query = st.text_input("🔎 Search course", placeholder="type in course's code and enter")
+
+        if show_grade:
+            df_pic = predictincourse(df, show_grade=True, course_query=course_query)
+            df_cbe = display_students_with_other_grades(df, show_grade=True, course_query=course_query)
+        else:
+            df_pic = predictincourse(df, show_grade=False, course_query=course_query)
+            df_cbe = display_students_with_other_grades(df, show_grade=False, course_query=course_query)
+
+        st.write(df_pic)
+        st.write(df_cbe)
+
+    elif options == "Prediction for student":
+        # make columns to place the search and switch side by side
+        col_switch_search = st.columns(3)
+        with col_switch_search[0]:
+            # Search Bar
+            stud_id_query = st.text_input("🔎 Search student", placeholder="type in metric number and enter")
+        with col_switch_search[1]:
+            # Show Actual Grade Toggle
+            show_grade = tog.st_toggle_switch(label="Show Actual Grade",
+                                              key="show_grade",
+                                              default_value=False,
+                                              label_after=False,
+                                              inactive_color='#D3D3D3',
+                                              active_color="#11567f",
+                                              track_color="#29B5E8")
+
+        if show_grade:
+            df_student = display_student_by_id(df, show_grade=True, stud_id_query=stud_id_query)
+        else:
+            df_student = display_student_by_id(df, show_grade=False, stud_id_query=stud_id_query)
+        # st.dataframe(df_student, hide_index=True)
+        st.markdown(df_student.style.hide(axis="index").to_html(), unsafe_allow_html=True)
+
 
 def lecturer_dashboard():
-    with open('styles.css') as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
     st.sidebar.title("Options")
     file = "Salihan.csv"
     df = load_data(file)
@@ -651,7 +788,7 @@ def lecturer_dashboard():
 
 # --------------- run --------------
 st.set_page_config(
-    page_title='AcaPerforma',
+    page_title='AiPerLA',
     layout='wide',
     page_icon=':rocket:'
 )
@@ -696,8 +833,10 @@ set_page_container_style(
 )
 
 if __name__ == '__main__':
+    with open('styles.css') as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
     st.sidebar.empty()
-    st.sidebar.image("images/funrun_nobg.png", width=200)
+    st.sidebar.image("images/aiperla_logo_blue.png", width=200)
 
     if "logged_in" not in st.session_state or not st.session_state.logged_in:
         login()
